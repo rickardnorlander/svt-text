@@ -18,12 +18,13 @@ except ModuleNotFoundError:
     print("'Requests' library is required")
     sys.exit(1)
 
+# See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 classTable = {
     #'B'  : '\033[34m',
     #'B'  : '\033[94m',
     # Ubuntu blue is really weird, so specify 24bit color manually.
     # I don't feel great about this solution, may play bad with custom palettes.
-    'B': '\033[38;2;0;0;255m',
+    'B': '\033[38;2;0;50;255m',
     'R': '\033[91m',
     'G': '\033[92m',
     'Y': '\033[93m',
