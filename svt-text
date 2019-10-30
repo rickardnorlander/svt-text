@@ -4,7 +4,7 @@
 """Display svt-text in a terminal.
 
 Example usage:
-  ./text-tv.py 100
+  svt-text 100
 """
 
 from html.parser import HTMLParser
