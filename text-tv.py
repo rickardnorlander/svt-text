@@ -7,7 +7,8 @@ Example usage:
   ./text-tv.py 100
 """
 
-from typing import List, Optional
+from html.parser import HTMLParser
+from typing import List, Optional, Tuple
 import re
 import sys
 
@@ -96,115 +97,104 @@ def getEscapes(classes: List[str]) -> str:
     return ret
 
 
-def processSpans(in_html: str) -> str:
-    """Converts spans to terminal escapes.
+class SVTParser(HTMLParser):
+    """Parses an svt-text page, and creates terminal text in self.s
 
-    Converts fore- and background colors from styled spans to terminal escapes.
-    Some spans have background images. They are converted to a text
-    representation.
-
-    Args:
-      in_html: Input html containing spans
-
-    Returns: 
-      Partial html. Styled spans converted to characters and ansi escape codes.
+    Takes html from svt-text page.  Converts fore- and background colors from
+    styled spans to terminal escapes. Some spans have background images. They are
+    converted to a text representation.
     """
-    # The idea of this method is as follows. Input consists of spans, and things
-    # that are not spans. Spans should be processed, and other things should just
-    # be passed through.
-    # We iterate over spanny-things. Whenever we find something, we output all
-    # text between last span (or beginning of input if no previous) and current
-    # span. UNLESS there was a background-image style active. In that case,
-    # we instead print special characters meant to imitate the image.
-    # At the end we output the text after the last span, if any.
 
-    # This pattern finds all opening and closing span tags.
-    c = re.compile('<(?:/)?span(?: class="(?P<classes>[A-Za-z ]*)")?'
-                   '(?: style="background: url\(../../images/mos/(?:[A-Z])'
-                   '/(?P<number>\d+).gif\)")?>')
+    def __init__(self):
+        super().__init__()
+        self.s = ''
 
-    ret = ''
-    # Index One after last character of last pattern match, or 0 if there were no
-    # previous matches.
-    last = 0
-    # Keep track of classes of nested spans by pushing previous styles onto a
-    # stack, so we can pop when we get a closing tag.
-    stack = [[]]  # type: List[List[str]]
-    # Keep track of nested background-images.
-    bg = [None]  # type: List[Optional[int]]
+        # Keep track of classes of nested spans by pushing previous styles onto a
+        # stack, so we can pop when we get a closing tag.
+        self.stack = [[]]  # type: List[List[str]]
+        # Keep track of nested background-images.
+        self.bg = [None]  # type: List[Optional[int]]
+        self.bg_pattern = re.compile(
+            'background: url\(../../images/mos/(?:[A-Z])/(\d+).gif\)')
+        self.in_page = False
 
-    for m in c.finditer(in_html):
-        # Print things since last spanny thing
-        cur_bg = bg[-1]
+    def span_enter(self, attrs: List[Tuple[str, str]]):
+        new_classes = []  # type: List[str]
+        number = None
+        for attr in attrs:
+            if attr[0] == 'class' and attr[1]:
+                new_classes = attr[1].split(' ')
+            if attr[0] == 'style':
+                m = self.bg_pattern.match(attr[1])
+                if m is not None:
+                    number = int(m.group(1))
+        self.s += getEscapes(new_classes)
+        self.stack.append(self.stack[-1] + new_classes)
+        self.bg.append(number)
+
+    def span_exit(self):
+        # Restore styles
+        self.s += '\033[0m'
+        self.stack.pop()
+        self.bg.pop()
+        self.s += getEscapes(self.stack[-1])
+
+    def pre_enter(self, attrs: List[Tuple[str, str]]):
+        assert not self.in_page
+        if attrs == [('class', 'root')]:
+            # First page
+            self.in_page = True
+        elif attrs == [('class', 'root sub')]:
+            # Subsequent page
+            self.s += '\n\n'
+            self.in_page = True
+
+    def pre_exit(self):
+        if self.in_page:
+            self.in_page = False
+
+    def handle_starttag(self, tag: str, attrs: List[Tuple[str, str]]):
+        if tag == 'pre':
+            self.pre_enter(attrs)
+        elif self.in_page and tag == 'span':
+            self.span_enter(attrs)
+
+    def handle_endtag(self, tag: str):
+        if tag == 'pre':
+            self.pre_exit()
+        elif self.in_page and tag == 'span':
+            self.span_exit()
+
+    def handle_data(self, data: str):
+        if not self.in_page:
+            return
+        cur_bg = self.bg[-1]
         if cur_bg is None:
-            ret += in_html[last:m.start()]
+            # We don't have any background image. Just put all data in output
+            self.s += data
         else:
-            ret += getChar(cur_bg) * (m.start() - last)
-
-        if m.group(0) == '</span>':
-            # Restore styles if we have an end-tag.
-            ret += '\033[0m'
-            stack.pop()
-            bg.pop()
-            ret += getEscapes(stack[-1])
-        else:
-            gd = m.groupdict()
-            if gd['classes'] is not None:
-                new_classes = gd['classes'].split(' ') if gd['classes'] else []
-                stack.append(stack[-1] + new_classes)
-                ret += getEscapes(new_classes)
-            else:
-                stack.append(stack[-1])
-            if gd['number'] is not None:
-                # We have a background image. Push it onto our background image
-                # stack.
-                bg.append(int(gd['number']))
-            else:
-                # No background image, still gotta keep the stack the right size.
-                bg.append(None)
-        last = m.end()
-    ret += in_html[last:]
-    return ret
+            # Replace spaces (that should be all characters) with a character
+            # that represents the background image
+            replacement = getChar(cur_bg)
+            self.s += data.replace(' ', replacement)
 
 
-def render(html: str) -> None:
-    """Takes html of one subpage and renders it."""
-    # Handle spans
-    html = processSpans(html)
-    # Links
-    html = re.sub('<a href="\d+.html">', '', html)
-    html = re.sub('</a>', '', html)
-    # And finally html entities
-    out = html.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
-    print(out)
+def main():
+    # Cast to int and back to string to validate the argument is really a number.
+    n = int(sys.argv[1])
+    response = requests.get('https://www.svt.se/svttext/tv/pages/'
+                            + str(n) + '.html')
+    if response.status_code != 200:
+        friendly = ''
+        if response.status_code == 404:
+            friendly = ': File not found'
+        print('Failed to fetch page. Got %d%s' %
+              (response.status_code, friendly))
+        sys.exit(1)
+
+    parser = SVTParser()
+    parser.feed(response.text)
+    print(parser.s)
 
 
-# Cast to int and back to string to validate the argument is really a number.
-n = int(sys.argv[1])
-response = requests.get('https://www.svt.se/svttext/tv/pages/'
-                        + str(n) + '.html')
-if response.status_code != 200:
-    friendly = ''
-    if response.status_code == 404:
-        friendly = ': File not found'
-    print('Failed to fetch page. Got %d%s' % (response.status_code, friendly))
-    sys.exit(1)
-text = response.text
-
-# The first subpage is wrapped in one kind of pre
-beforeSplit = text.split('<pre class="root">')
-if len(beforeSplit) > 1:
-    afterSplit = beforeSplit[1].split('</pre>')
-    if len(afterSplit) > 1:
-        render(afterSplit[0])
-
-# Subsequent subpages are wrapped in a slightly different kind of pre.
-subPages = text.split('<pre class="root sub">')
-if len(subPages) > 1:
-    for subPage in subPages[1:]:
-        # Some breathing room
-        print()
-        print()
-        afterSplit = subPage.split('</pre>')
-        if len(afterSplit) > 1:
-            render(afterSplit[0])
+main()
