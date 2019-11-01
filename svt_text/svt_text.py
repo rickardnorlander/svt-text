@@ -130,7 +130,7 @@ class SVTParser(HTMLParser):
         # Keep track of nested background-images.
         self.bg = [None]  # type: List[Optional[int]]
         self.bg_pattern = re.compile(
-            'background: url\(../../images/mos/(?:[A-Z])/(\d+).gif\)')
+            r'background: url\(../../images/mos/(?:[A-Z])/(\d+).gif\)')
         self.in_page = False
 
     def span_enter(self, attrs: List[Tuple[str, str]]):
