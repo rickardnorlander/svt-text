@@ -1,11 +1,12 @@
 import setuptools
+import svt_text.svt_text as impl
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="svt-text",
-    version="0.1.0",
+    version=impl.__version__,
     author="Rickard Norlander",
     author_email="rickard@rinor.se",
     description="Displays SVT-text in a terminal",

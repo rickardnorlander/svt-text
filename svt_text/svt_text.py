@@ -23,6 +23,7 @@ Example usage:
 
 from html.parser import HTMLParser
 from typing import List, Optional, Tuple
+import argparse
 import re
 import sys
 
@@ -31,6 +32,14 @@ try:
 except ModuleNotFoundError:
     print("'Requests' library is required")
     sys.exit(1)
+
+__version__ = '0.1.1'
+
+arg_parser = argparse.ArgumentParser(
+    description='Display svt-text in a terminal.', prog='svt-text')
+arg_parser.add_argument(
+    '--version', action='version', version='%(prog)s ' + __version__)
+arg_parser.add_argument('page', type=int)
 
 # See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 classTable = {
@@ -195,10 +204,9 @@ class SVTParser(HTMLParser):
 
 
 def main():
-    # Cast to int and back to string to validate the argument is really a number.
-    n = int(sys.argv[1])
+    args = arg_parser.parse_args()
     response = requests.get('https://www.svt.se/svttext/tv/pages/'
-                            + str(n) + '.html')
+                            + str(args.page) + '.html')
     if response.status_code != 200:
         friendly = ''
         if response.status_code == 404:
