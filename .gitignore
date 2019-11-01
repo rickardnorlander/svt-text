@@ -1,0 +1,6 @@
+build
+dist
+env
+svt_text.egg-info
+.mypy_cache
+.pytype
