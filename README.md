@@ -6,7 +6,7 @@ Shows SVT Text in a terminal
 * Requests
 
 ## Installation
-Make a symlink from your path to svt_text.py
+pip install svt-text
 
 ## Example Usage
 svt-text 100
