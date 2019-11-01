@@ -6,7 +6,7 @@ Shows SVT Text in a terminal
 * Requests
 
 ## Installation
-pip install svt-text
+pip3 install svt-text
 
 ## Example Usage
 svt-text 100
