@@ -220,8 +220,23 @@ def main():
         elif len(splitted) == 2:
             pages.extend(range(int(splitted[0]), int(splitted[1])+1))
 
+    no_page_regex = re.compile(
+        "^ \\d{3} SVT Text   Sidan ej i sändning  \n\n\n\n\n$\n")
+    next_page_regex = re.compile(
+        '<script language="JavaScript" type="text/javascript">'
+        '<!--var nextPage = "\\d{3}\\.html";'
+        'var previousPage = "(\\d{3})\\.html";// --></script>')
+
+    skip_state = None
     needs_sep = False
     for page in pages:
+        if page < 100 or page > 999:
+            print("Skipping invalid page %d" % page)
+            continue
+        if skip_state is not None:
+            if skip_state[0] < page < skip_state[1]:
+                print("Skipping page %d" % page)
+                continue
         if needs_sep:
             print()
             print()
@@ -235,10 +250,19 @@ def main():
                   (response.status_code, friendly))
             sys.exit(1)
 
+        match = next_page_regex.search(response.text)
+        if match is not None:
+            next_page = int(match.group(1))
+            if next_page == page:
+                next_page = 1000
+            skip_state = (page, next_page)
         parser = SVTParser()
         parser.feed(response.text)
-        print(parser.result)
-        needs_sep = True
+        if no_page_regex.match(parser.result):
+            print("No page for %d" % page)
+        else:
+            print(parser.result)
+            needs_sep = True
 
 
 if __name__ == '__main__':
