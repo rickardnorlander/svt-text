@@ -38,12 +38,17 @@ except ModuleNotFoundError:
 __version__ = '0.1.1'
 
 arg_parser = argparse.ArgumentParser(
-    description='Display svt-text in a terminal.', prog='svt-text')
+    description='Display svt-text in a terminal.', prog='svt-text',
+    allow_abbrev=False)
 arg_parser.add_argument(
     '--version', action='version', version='%(prog)s ' + __version__)
 arg_parser.add_argument(
+    '-v', '--verbose', action='store_true', help='show diagnostic information')
+arg_parser.add_argument(
     'page_range', type=str, nargs='+',
     help='Either N for a single page, or M-N for a range of pages')
+args = argparse.Namespace()
+
 
 # See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 CLASS_TABLE = {
@@ -122,6 +127,8 @@ def get_escapes(classes: List[str]) -> str:
     for _class in classes:
         if _class in CLASS_TABLE:
             ret += CLASS_TABLE[_class]
+        elif args.verbose:
+            print('Unknown class %s' % _class)
     return ret
 
 
@@ -211,6 +218,7 @@ class SVTParser(HTMLParser):
 
 
 def main():
+    global args
     args = arg_parser.parse_args()
     pages = []
     for page_range in args.page_range:
@@ -235,7 +243,8 @@ def main():
             continue
         if skip_state is not None:
             if skip_state[0] < page < skip_state[1]:
-                print("Skipping page %d" % page)
+                if args.verbose:
+                    print("Skipping page %d" % page)
                 continue
         if needs_sep:
             print()
@@ -259,7 +268,8 @@ def main():
         parser = SVTParser()
         parser.feed(response.text)
         if no_page_regex.match(parser.result):
-            print("No page for %d" % page)
+            if args.verbose:
+                print("No page for %d" % page)
         else:
             print(parser.result)
             needs_sep = True
