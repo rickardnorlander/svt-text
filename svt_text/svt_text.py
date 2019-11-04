@@ -22,7 +22,9 @@ Example usage:
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from html.parser import HTMLParser
-from typing import List, Optional, Tuple
+from typing import List, Tuple
+# This is "used" in an annotation in a comment.
+from typing import Optional # pylint: disable=unused-variable,unused-import
 import argparse
 import re
 import sys
@@ -42,7 +44,7 @@ arg_parser.add_argument(
 arg_parser.add_argument('page', type=int)
 
 # See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
-classTable = {
+CLASS_TABLE = {
     #'B'  : '\033[34m',
     #'B'  : '\033[94m',
     # Ubuntu blue is really weird, so specify 24bit color manually.
@@ -66,7 +68,7 @@ classTable = {
 }
 
 
-def getChar(image_number: int) -> str:
+def get_char(image_number: int) -> str:
     """Converts an image number to a character.
 
     For instance if filename was 112.gif
@@ -112,12 +114,12 @@ def getChar(image_number: int) -> str:
         return '█'
 
 
-def getEscapes(classes: List[str]) -> str:
+def get_escapes(classes: List[str]) -> str:
     """Takes a list of classes, returns string with corresponding escapes"""
     ret = ''
-    for c in classes:
-        if c in classTable:
-            ret += classTable[c]
+    for _class in classes:
+        if _class in CLASS_TABLE:
+            ret += CLASS_TABLE[_class]
     return ret
 
 
@@ -125,20 +127,20 @@ class SVTParser(HTMLParser):
     """Parses an svt-text page, and creates terminal text in self.s
 
     Takes html from svt-text page.  Converts fore- and background colors from
-    styled spans to terminal escapes. Some spans have background images. They are
-    converted to a text representation.
+    styled spans to terminal escapes. Some spans have background images. They
+    are converted to a text representation.
     """
 
     def __init__(self):
         super().__init__()
-        self.s = ''
+        self.result = ''
 
-        # Keep track of classes of nested spans by pushing previous styles onto a
-        # stack, so we can pop when we get a closing tag.
+        # Keep track of classes of nested spans by pushing previous styles onto
+        # a stack, so we can pop when we get a closing tag.
         self.stack = [[]]  # type: List[List[str]]
         # Keep track of nested background-images.
-        self.bg = [None]  # type: List[Optional[int]]
-        self.bg_pattern = re.compile(
+        self.background = [None]  # type: List[Optional[int]]
+        self.background_regex = re.compile(
             r'background: url\(../../images/mos/(?:[A-Z])/(\d+).gif\)')
         self.in_page = False
 
@@ -149,19 +151,19 @@ class SVTParser(HTMLParser):
             if attr[0] == 'class' and attr[1]:
                 new_classes = attr[1].split(' ')
             if attr[0] == 'style':
-                m = self.bg_pattern.match(attr[1])
-                if m is not None:
-                    number = int(m.group(1))
-        self.s += getEscapes(new_classes)
+                match = self.background_regex.match(attr[1])
+                if match is not None:
+                    number = int(match.group(1))
+        self.result += get_escapes(new_classes)
         self.stack.append(self.stack[-1] + new_classes)
-        self.bg.append(number)
+        self.background.append(number)
 
     def span_exit(self):
         # Restore styles
-        self.s += '\033[0m'
+        self.result += '\033[0m'
         self.stack.pop()
-        self.bg.pop()
-        self.s += getEscapes(self.stack[-1])
+        self.background.pop()
+        self.result += get_escapes(self.stack[-1])
 
     def pre_enter(self, attrs: List[Tuple[str, str]]):
         assert not self.in_page
@@ -170,12 +172,15 @@ class SVTParser(HTMLParser):
             self.in_page = True
         elif attrs == [('class', 'root sub')]:
             # Subsequent page
-            self.s += '\n\n'
+            self.result += '\n\n'
             self.in_page = True
 
     def pre_exit(self):
         if self.in_page:
             self.in_page = False
+
+    def error(self, message):
+        raise NotImplementedError()
 
     def handle_starttag(self, tag: str, attrs: List[Tuple[str, str]]):
         if tag == 'pre':
@@ -192,15 +197,15 @@ class SVTParser(HTMLParser):
     def handle_data(self, data: str):
         if not self.in_page:
             return
-        cur_bg = self.bg[-1]
+        cur_bg = self.background[-1]
         if cur_bg is None:
             # We don't have any background image. Just put all data in output
-            self.s += data
+            self.result += data
         else:
             # Replace spaces (that should be all characters) with a character
             # that represents the background image
-            replacement = getChar(cur_bg)
-            self.s += data.replace(' ', replacement)
+            replacement = get_char(cur_bg)
+            self.result += data.replace(' ', replacement)
 
 
 def main():
@@ -217,7 +222,7 @@ def main():
 
     parser = SVTParser()
     parser.feed(response.text)
-    print(parser.s)
+    print(parser.result)
 
 
 if __name__ == '__main__':
