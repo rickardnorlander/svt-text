@@ -41,7 +41,9 @@ arg_parser = argparse.ArgumentParser(
     description='Display svt-text in a terminal.', prog='svt-text')
 arg_parser.add_argument(
     '--version', action='version', version='%(prog)s ' + __version__)
-arg_parser.add_argument('page', type=int)
+arg_parser.add_argument(
+    'page_range', type=str, nargs='+',
+    help='Either N for a single page, or M-N for a range of pages')
 
 # See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 CLASS_TABLE = {
@@ -210,19 +212,33 @@ class SVTParser(HTMLParser):
 
 def main():
     args = arg_parser.parse_args()
-    response = requests.get('https://www.svt.se/svttext/tv/pages/'
-                            + str(args.page) + '.html')
-    if response.status_code != 200:
-        friendly = ''
-        if response.status_code == 404:
-            friendly = ': File not found'
-        print('Failed to fetch page. Got %d%s' %
-              (response.status_code, friendly))
-        sys.exit(1)
+    pages = []
+    for page_range in args.page_range:
+        splitted = page_range.split('-')
+        if len(splitted) == 1:
+            pages.append(int(page_range))
+        elif len(splitted) == 2:
+            pages.extend(range(int(splitted[0]), int(splitted[1])+1))
 
-    parser = SVTParser()
-    parser.feed(response.text)
-    print(parser.result)
+    needs_sep = False
+    for page in pages:
+        if needs_sep:
+            print()
+            print()
+        response = requests.get('https://www.svt.se/svttext/tv/pages/'
+                                + str(page) + '.html')
+        if response.status_code != 200:
+            friendly = ''
+            if response.status_code == 404:
+                friendly = ': File not found'
+            print('Failed to fetch page. Got %d%s' %
+                  (response.status_code, friendly))
+            sys.exit(1)
+
+        parser = SVTParser()
+        parser.feed(response.text)
+        print(parser.result)
+        needs_sep = True
 
 
 if __name__ == '__main__':
