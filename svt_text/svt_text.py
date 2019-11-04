@@ -35,7 +35,7 @@ except ModuleNotFoundError:
     print("'Requests' library is required")
     sys.exit(1)
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 arg_parser = argparse.ArgumentParser(
     description='Display svt-text in a terminal.', prog='svt-text',
