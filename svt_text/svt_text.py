@@ -78,17 +78,22 @@ CLASS_TABLE = {
 def get_char(image_number: int) -> str:
     """Converts an image number to a character.
 
-    For instance if filename was 112.gif
-    imageNumber is '112'
-    Based on experiments the images have 2x3 pixels, one bit color depth.
-    Valid filename numbers are 32-63 and 96-127
+    This function is used for handling html like
+      <span class="Y" style="background: url(../../images/mos/Y/44.gif)">
+    Such spans are used for simple tile-based graphics. In this case 44 would be
+    the image number.
 
+    Based on experiments, all images have 2x3 pixels, one bit color depth.
+    Valid filename numbers are 32-63 and 96-127. There is a rule for getting the
+    image from the number:
     By subtracting 32 from the numbers in the low range, and 64 from the numbers
     in the high range we get a number between 0 and 63. Every bit of that number
     corresponds to a pixel in the following pattern.
       1  2
       4  8
      16 32
+    After finding which pixels are set, this function returns a character
+    resembling that image.
     """
 
     if image_number >= 64:
@@ -122,7 +127,15 @@ def get_char(image_number: int) -> str:
 
 
 def get_escapes(classes: List[str]) -> str:
-    """Takes a list of classes, returns string with corresponding escapes"""
+    """Takes a list of classes, returns string with corresponding escapes.
+
+    This function is used for handling html like <span class="Y">.
+    The input is a list of classes, for example ['Y']. Class 'Y' corresponds
+    to yellow foreground color, so an escape sequence to set the foreground
+    color to yellow is returned.
+    In addition to foreground colors, bold and background colors are also
+    handled.
+    """
     ret = ''
     for _class in classes:
         if _class in CLASS_TABLE:
@@ -133,7 +146,7 @@ def get_escapes(classes: List[str]) -> str:
 
 
 class SVTParser(HTMLParser):
-    """Parses an svt-text page, and creates terminal text in self.s
+    """Parses an svt-text page, and creates terminal text in self.result
 
     Takes html from svt-text page.  Converts fore- and background colors from
     styled spans to terminal escapes. Some spans have background images. They
