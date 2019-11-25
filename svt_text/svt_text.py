@@ -24,7 +24,7 @@ Example usage:
 from html.parser import HTMLParser
 from typing import List, Tuple
 # This is "used" in an annotation in a comment.
-from typing import Optional # pylint: disable=unused-variable,unused-import
+from typing import Optional  # pylint: disable=unused-variable,unused-import
 import argparse
 import re
 import sys
