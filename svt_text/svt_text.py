@@ -44,8 +44,25 @@ arg_parser.add_argument(
     '--version', action='version', version='%(prog)s ' + __version__)
 arg_parser.add_argument(
     '-v', '--verbose', action='store_true', help='show diagnostic information')
+
+
+def parse_page_range(page_range: str) -> List[int]:
+    try:
+        splitted = page_range.split('-')
+        if len(splitted) == 1:
+            page = int(page_range)
+            return [page, page]
+        if len(splitted) == 2:
+            return [int(x) for x in splitted]
+        raise ValueError()
+    except ValueError:
+        # We can get here from either the int casts or the explicit raise.
+        raise argparse.ArgumentTypeError(
+            "'%s' is not a valid page range" % page_range)
+
+
 arg_parser.add_argument(
-    'page_range', type=str, nargs='+',
+    'page_range', type=parse_page_range, nargs='+',
     help='Either N for a single page, or M-N for a range of pages')
 args = argparse.Namespace()
 
@@ -235,16 +252,34 @@ class SVTParser(HTMLParser):
             self.result += data.replace(' ', replacement)
 
 
+def get_pages_to_fetch() -> List[int]:
+    pages = []  # type: List[int]
+    invalid_pages = False
+    for page_range in args.page_range:
+        if page_range[0] < 100:
+            page_range[0] = 100
+            invalid_pages = True
+        if page_range[1] > 999:
+            page_range[1] = 999
+            invalid_pages = True
+        pages.extend(range(page_range[0], page_range[1] + 1))
+
+    if invalid_pages and not pages:
+        print('All pages outside the valid range 100-999.')
+        sys.exit(1)
+
+    if invalid_pages and pages:
+        print('There were pages outside of the valid range 100-999. '
+              'They will be skipped.')
+    if not invalid_pages and not pages:
+        verbose_print('No pages to fetch')
+    return pages
+
+
 def main():
     global args
     args = arg_parser.parse_args()
-    pages = []
-    for page_range in args.page_range:
-        splitted = page_range.split('-')
-        if len(splitted) == 1:
-            pages.append(int(page_range))
-        elif len(splitted) == 2:
-            pages.extend(range(int(splitted[0]), int(splitted[1])+1))
+    pages = get_pages_to_fetch()
 
     no_page_regex = re.compile(
         "^ \\d{3} SVT Text   Sidan ej i sändning  \n\n\n\n\n$\n")
@@ -256,9 +291,6 @@ def main():
     skip_state = None
     needs_sep = False
     for page in pages:
-        if page < 100 or page > 999:
-            print("Skipping invalid page %d" % page)
-            continue
         if skip_state is not None:
             if skip_state[0] < page < skip_state[1]:
                 verbose_print("Skipping page %d" % page)
