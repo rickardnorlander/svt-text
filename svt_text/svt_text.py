@@ -252,6 +252,65 @@ class SVTParser(HTMLParser):
             self.result += data.replace(' ', replacement)
 
 
+EMPTY_PAGE_REGEX = re.compile(
+    '^ \\d{3} SVT Text   Sidan ej i sändning  \n\n\n\n\n$\n')
+
+
+def is_page_empty(parse_result: str) -> bool:
+    """Checks whether page is empty.
+
+    Sometimes some page numbers are not in use. When this happens,
+    a predictable error message is displayed. Detect that message.
+    """
+    return bool(EMPTY_PAGE_REGEX.match(parse_result))
+
+
+NEXT_PAGE_REGEX = re.compile(
+    '<script language="JavaScript" type="text/javascript">'
+    '<!--var nextPage = "\\d{3}\\.html";'
+    'var previousPage = "(\\d{3})\\.html";// --></script>')
+
+
+class PageSkipper(object):
+    """Helper class for skipping non-existent pages.
+
+    When we request a page, whether existent or not, the response
+    tells us the previous valid, and the next valid page.
+    They are swapped in the response, so we extract 'previousPage' as
+    our next_page.
+    After requesting page M, and hearing the next valid page is N, we
+    store the M, N pair, and skip any pages between M and N. Pages are
+    mostly accessed in ascending order, so we don't bother keeping track
+    of the previous valid page.
+    """
+
+    def __init__(self, page, next_page):
+        self.page = page
+        self.next_page = next_page
+
+    @classmethod
+    def empty(cls):
+        return cls(None, None)
+
+    @classmethod
+    def fromresponse(cls, current_page: int, response_text: str):
+        match = NEXT_PAGE_REGEX.search(response_text)
+        if match is None:
+            next_page = None
+        else:
+            next_page = int(match.group(1))
+            if next_page == current_page:
+                # This happens for the last valid page so set next_page, to
+                # 1000 to skip any pages after this.
+                next_page = 1000
+        return cls(current_page, next_page)
+
+    def should_skip(self, page: int) -> bool:
+        if self.next_page is None:
+            return False
+        return self.page < page < self.next_page
+
+
 def fetch_page(page: int) -> str:
     response = requests.get('https://www.svt.se/svttext/tv/pages/'
                             + str(page) + '.html')
@@ -293,40 +352,29 @@ def get_pages_to_fetch() -> List[int]:
 def main():
     global args
     args = arg_parser.parse_args()
+
     pages = get_pages_to_fetch()
-
-    no_page_regex = re.compile(
-        "^ \\d{3} SVT Text   Sidan ej i sändning  \n\n\n\n\n$\n")
-    next_page_regex = re.compile(
-        '<script language="JavaScript" type="text/javascript">'
-        '<!--var nextPage = "\\d{3}\\.html";'
-        'var previousPage = "(\\d{3})\\.html";// --></script>')
-
-    skip_state = None
-    needs_sep = False
+    page_skipper = PageSkipper.empty()
+    first_page = True
     for page in pages:
-        if skip_state is not None:
-            if skip_state[0] < page < skip_state[1]:
-                verbose_print("Skipping page %d" % page)
-                continue
-        if needs_sep:
-            print()
-            print()
+        if page_skipper.should_skip(page):
+            verbose_print('Skipping page %d' % page)
+            continue
+
         response_text = fetch_page(page)
 
-        match = next_page_regex.search(response_text)
-        if match is not None:
-            next_page = int(match.group(1))
-            if next_page == page:
-                next_page = 1000
-            skip_state = (page, next_page)
+        page_skipper = PageSkipper.fromresponse(page, response_text)
         parser = SVTParser()
         parser.feed(response_text)
-        if no_page_regex.match(parser.result):
-            verbose_print("No page for %d" % page)
-        else:
-            print(parser.result)
-            needs_sep = True
+        if is_page_empty(parser.result):
+            verbose_print('No page for %d' % page)
+            continue
+
+        if not first_page:
+            print()
+            print()
+        print(parser.result)
+        first_page = False
 
 
 if __name__ == '__main__':
