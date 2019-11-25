@@ -126,6 +126,11 @@ def get_char(image_number: int) -> str:
         return '█'
 
 
+def verbose_print(msg: str):
+    if args.verbose:
+        print(msg)
+
+
 def get_escapes(classes: List[str]) -> str:
     """Takes a list of classes, returns string with corresponding escapes.
 
@@ -140,8 +145,8 @@ def get_escapes(classes: List[str]) -> str:
     for _class in classes:
         if _class in CLASS_TABLE:
             ret += CLASS_TABLE[_class]
-        elif args.verbose:
-            print('Unknown class %s' % _class)
+        else:
+            verbose_print('Unknown class %s' % _class)
     return ret
 
 
@@ -256,8 +261,7 @@ def main():
             continue
         if skip_state is not None:
             if skip_state[0] < page < skip_state[1]:
-                if args.verbose:
-                    print("Skipping page %d" % page)
+                verbose_print("Skipping page %d" % page)
                 continue
         if needs_sep:
             print()
@@ -281,8 +285,7 @@ def main():
         parser = SVTParser()
         parser.feed(response.text)
         if no_page_regex.match(parser.result):
-            if args.verbose:
-                print("No page for %d" % page)
+            verbose_print("No page for %d" % page)
         else:
             print(parser.result)
             needs_sep = True
