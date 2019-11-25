@@ -252,6 +252,20 @@ class SVTParser(HTMLParser):
             self.result += data.replace(' ', replacement)
 
 
+def fetch_page(page: int) -> str:
+    response = requests.get('https://www.svt.se/svttext/tv/pages/'
+                            + str(page) + '.html')
+    if response.status_code != 200:
+        friendly = ''
+        if response.status_code == 404:
+            friendly = ': File not found'
+        print('Failed to fetch page. Got %d%s' %
+              (response.status_code, friendly))
+        # This is unexpected so exit.
+        sys.exit(1)
+    return response.text
+
+
 def get_pages_to_fetch() -> List[int]:
     pages = []  # type: List[int]
     invalid_pages = False
@@ -298,24 +312,16 @@ def main():
         if needs_sep:
             print()
             print()
-        response = requests.get('https://www.svt.se/svttext/tv/pages/'
-                                + str(page) + '.html')
-        if response.status_code != 200:
-            friendly = ''
-            if response.status_code == 404:
-                friendly = ': File not found'
-            print('Failed to fetch page. Got %d%s' %
-                  (response.status_code, friendly))
-            sys.exit(1)
+        response_text = fetch_page(page)
 
-        match = next_page_regex.search(response.text)
+        match = next_page_regex.search(response_text)
         if match is not None:
             next_page = int(match.group(1))
             if next_page == page:
                 next_page = 1000
             skip_state = (page, next_page)
         parser = SVTParser()
-        parser.feed(response.text)
+        parser.feed(response_text)
         if no_page_regex.match(parser.result):
             verbose_print("No page for %d" % page)
         else:
