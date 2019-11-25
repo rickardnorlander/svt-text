@@ -31,7 +31,7 @@ import sys
 
 try:
     import requests
-except ModuleNotFoundError:
+except ImportError:
     print("'Requests' library is required")
     sys.exit(1)
 

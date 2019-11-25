@@ -2,7 +2,7 @@
 Shows SVT Text in a terminal
 
 ## Dependencies
-* Python 3.6
+* Python 3.5
 * Requests
 
 ## Installation
