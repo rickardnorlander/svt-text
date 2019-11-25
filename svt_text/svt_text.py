@@ -69,8 +69,8 @@ args = argparse.Namespace()
 
 # See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 CLASS_TABLE = {
-    #'B'  : '\033[34m',
-    #'B'  : '\033[94m',
+    # 'B': '\033[34m',
+    # 'B': '\033[94m',
     # Ubuntu blue is really weird, so specify 24bit color manually.
     # I don't feel great about this solution, may play bad with custom palettes.
     'B': '\033[38;2;0;50;255m',
