@@ -38,10 +38,10 @@ from typing import List, Optional, Tuple
 import numpy as np
 import PIL
 from PIL import Image
-import pkg_resources
 import requests
 
 from svt_text import common
+import svt_text.generated
 from svt_text.common import err_print, err_verbose, ParsedTile
 from svt_text.common import DH_FALSE, DH_TRUE, DH_TOP, DH_BOTTOM
 
@@ -334,9 +334,9 @@ class Fetcher():
             if fn[:5] == 'shape':
                 tile_data[tile.key] = ParsedTile(None, int(fn[5:-4]), None, None, DH_FALSE)
 
-        resources = pkg_resources.resource_listdir('svt_text', 'tiles')
-        for fn in resources:
-            im = Image.open(pkg_resources.resource_stream('svt_text', 'tiles/' + fn))
+        for fn, encf in svt_text.generated.files.items():
+            f = io.BytesIO(base64.b64decode(encf))
+            im = Image.open(f)
             handle_one(fn, im)
 
         if self.extratiles_dir is not None:
