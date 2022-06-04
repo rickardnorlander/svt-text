@@ -1,20 +1,19 @@
 # svt-text
-Shows SVT Text in a terminal
+svt-text is an unofficial terminal viewer for SVT Text
 
-## Dependencies
-* Python 3.5
-* Requests
+## Example Usage
+svt-text 100-105 202 300-303 401
 
 ## Installation
 pip3 install svt-text
-
-## Example Usage
-svt-text 100
 
 ## Screenshots
 
 ![Page 100](/100.png?raw=true "Page 100")
 
-![Page 202](/202.png?raw=true "Page 202")
-
 ![Page 401](/401.png?raw=true "Page 401")
+
+
+## License
+
+The source code is released under the AGPL license, but the tiles are not.

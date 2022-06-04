@@ -1,0 +1,2 @@
+recursive-include svt_text/tiles *
+README.md

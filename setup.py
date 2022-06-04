@@ -1,5 +1,5 @@
 import setuptools
-import svt_text.svt_text as impl
+import svt_text.common as impl
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -12,6 +12,7 @@ setuptools.setup(
     description="Displays SVT-text in a terminal",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    include_package_data=True,
     url="https://github.com/rickardnorlander/svt-text",
     packages=["svt_text"],
     entry_points={
@@ -24,6 +25,6 @@ setuptools.setup(
         "License :: OSI Approved :: GNU Affero General Public License v3",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.5",
-    install_requires = ["requests"]
+    python_requires=">=3.7",
+    install_requires = ["requests", "numpy", "Pillow"]
 )
