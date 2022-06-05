@@ -38,6 +38,7 @@ suggestion-mode=yes
 # active Python interpreter and may run arbitrary code.
 unsafe-load-any-extension=no
 
+disable=consider-using-f-string
 
 [MESSAGES CONTROL]
 
@@ -144,7 +145,7 @@ indent-after-paren=4
 indent-string='    '
 
 # Maximum number of characters on a single line.
-max-line-length=80
+max-line-length=110
 
 # Maximum number of lines in a module
 max-module-lines=100000
@@ -248,7 +249,7 @@ spelling-store-unknown-words=no
 additional-builtins=
 
 # Tells whether unused global variables should be treated as a violation.
-allow-global-unused-variables=no
+allow-global-unused-variables=yes
 
 # List of strings which can identify a callback function by name. A callback
 # name must start or end with one of those strings.
@@ -326,7 +327,7 @@ good-names=i,
            j,
            k,
            x,
-           _
+           _,
 
 # Include a hint for the correct naming format with invalid-name
 include-naming-hint=no
@@ -369,7 +370,7 @@ variable-naming-style=snake_case
 
 # Regular expression matching correct variable names. Overrides variable-
 # naming-style
-#variable-rgx=
+variable-rgx=.*
 
 
 [CLASSES]
