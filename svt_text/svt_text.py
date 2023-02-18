@@ -22,8 +22,9 @@ import argparse
 import configparser
 import sys
 import os
-import requests
 from typing import List
+
+import requests
 
 from svt_text import common
 from svt_text.common import err_print, err_verbose

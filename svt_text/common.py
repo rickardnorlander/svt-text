@@ -67,5 +67,3 @@ def err_verbose(msg: str):
     """Print a message to stderr if verbose flag is set."""
     if VERBOSE:
         print(msg, file=sys.stderr)
-
-

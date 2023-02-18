@@ -33,7 +33,7 @@ import json
 import os
 import re
 import time
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import PIL
@@ -206,7 +206,7 @@ class Fetcher():
         self.extratiles_dir = extratiles_dir
         self.cache_dir = cache_dir
         self.known_tiles, self.tile_data = self._read_tile_db()
-        self.num_unknown_tiles = {}
+        self.num_unknown_tiles: Dict[int, int] = {}
 
     def get_page(self, page_num: int) -> Tuple[int, List[List[List[ParsedTile]]]]:
         """Downloads and interprets a page.
