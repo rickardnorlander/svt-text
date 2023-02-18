@@ -70,25 +70,9 @@ class Tile:
     def from_tile_im(tile_im: Image.Image):
         data = np.asarray(tile_im.getdata())
         color_index_0 = data[0]
-        color_index_1 = None
-        for x in data:
-            if x != color_index_0:
-                color_index_1 = x
-                break
-
         onebit = data == color_index_0
         key = tuple(np.dot(onebit.reshape(-1, 8), TWOP))
-        colors = None
-
-        palette = tile_im.getpalette()
-        if palette is not None:
-            color_0 = Tile._lookup_palette(palette, color_index_0)
-            color_1 = (0, 0, 0)
-            if color_index_1 is not None:
-                color_1 = Tile._lookup_palette(palette, color_index_1)
-            colors = (COLOR_TABLE[color_0], COLOR_TABLE[color_1])
-
-        return Tile(onebit, key, colors)
+        return Tile(None, key, None)
 
     @staticmethod
     def _lookup_palette(palette: List[int], n: int):
