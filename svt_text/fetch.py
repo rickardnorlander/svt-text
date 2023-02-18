@@ -180,7 +180,7 @@ def get_tiles(im):
     keys = np.einsum('ijkm,m', binary_tiles.reshape(25, 40, 26, 8), TWOP)
 
     def make_tile(i, j):
-        return Tile(data=binary_tiles[i,j], key=tuple(keys[i, j]),
+        return Tile(data=binary_tiles[i,j], key=bytes(keys[i, j]),
                     colors=(color_0[i, j], color_1[i, j]))
     return [[make_tile(i, j) for j in range(num_cols)] for i in range(num_rows)]
 
