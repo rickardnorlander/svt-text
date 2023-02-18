@@ -295,10 +295,9 @@ class Fetcher():
         known_tiles = set()
         tile_data = {}
 
-        def handle_one(fn: str, im: Image.Image):
+        def handle_one(fn: str, tile: Tile):
             if len(fn) < 5:
                 return
-            tile = Tile.from_tile_im(im)
             if tile.key in known_tiles:
                 err_verbose('%s is dupe' % fn)
                 return
@@ -318,15 +317,19 @@ class Fetcher():
             if fn[:5] == 'shape':
                 tile_data[tile.key] = ParsedTile(None, int(fn[5:-4]), None, None, DH_FALSE)
 
-        for fn, encf in svt_text.generated.files.items():
-            f = io.BytesIO(base64.b64decode(encf))
-            im = Image.open(f)
-            handle_one(fn, im)
+        i = 0
+        files = base64.b64decode(svt_text.generated.files)
+        for fn in svt_text.generated.names:
+            key = files[i*26:i*26+26]
+            tile = Tile(None, key, None)
+            handle_one(fn, tile)
+            i+=1
 
         if self.extratiles_dir is not None:
             for fn in os.listdir(self.extratiles_dir):
                 im = Image.open(os.path.join(self.extratiles_dir, fn))
-                handle_one(fn, im)
+                tile = Tile.from_tile_im(im)
+                handle_one(fn, tile)
 
         if len(tile_data) == 0:
             err_print('No tiles loaded')
