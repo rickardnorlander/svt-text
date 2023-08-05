@@ -152,7 +152,7 @@ def fgbg_fixups(parsed_tiless: List[List[common.ParsedTile]], page: int, subpage
                     parsed_tile.invert_shape('K')
                 elif 777 == page and subpageid < 2:
                     lastbg = bg
-                elif bg == 'W':
+                elif page not in [129, 149] and bg == 'W':
                     parsed_tile.invert_shape(lastbg)
                 else:
                     lastbg = bg
@@ -161,6 +161,16 @@ def fgbg_fixups(parsed_tiless: List[List[common.ParsedTile]], page: int, subpage
                     parsed_tile.invert_shape()
                 elif (bg, fg) == ('Y', 'B'):
                     parsed_tile.invert_shape()
+
+def remove_fg_back_and_forth(parsed_tiless: List[List[common.ParsedTile]]):
+    for parsed_tiles in parsed_tiless:
+        for i in range(len(parsed_tiles)):
+            if i < 2: continue
+
+            if parsed_tiles[i-1].char != ' ': continue
+            if parsed_tiles[i-2].char == ' ' or parsed_tiles[i].char == ' ': continue
+            if parsed_tiles[i-2].fg_color != parsed_tiles[i].fg_color: continue
+            parsed_tiles[i-1].fg_color = parsed_tiles[i].fg_color
 
 def apply_shapes(parsed_tiless: List[List[common.ParsedTile]], braille: bool):
     for parsed_tiles in parsed_tiless:
@@ -175,6 +185,7 @@ def apply_shapes(parsed_tiless: List[List[common.ParsedTile]], braille: bool):
 def render_page(parsed_tilesss: List[List[List[common.ParsedTile]]], page: int):
     for subpageid, parsed_tiless in enumerate(parsed_tilesss):
         fgbg_fixups(parsed_tiless, page, subpageid)
+        remove_fg_back_and_forth(parsed_tiless)
         apply_shapes(parsed_tiless, common.BRAILLE)
         for parsed_tiles in parsed_tiless:
             render_row(parsed_tiles)
